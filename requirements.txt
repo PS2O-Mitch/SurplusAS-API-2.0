@@ -1,3 +1,12 @@
 # Top-level dependencies for SurplusAS API v2.0.
 # Run: python -m venv .venv && .venv\Scripts\pip install -r requirements.txt
+
+# Agent framework
 google-adk>=2.0.0b1,<3
+
+# Web server
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# Config
+python-dotenv>=1.0.0
