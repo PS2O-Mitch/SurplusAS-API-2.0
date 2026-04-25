@@ -1,0 +1,3 @@
+# Top-level dependencies for SurplusAS API v2.0.
+# Run: python -m venv .venv && .venv\Scripts\pip install -r requirements.txt
+google-adk>=2.0.0b1,<3
