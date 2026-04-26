@@ -1,0 +1,66 @@
+"""Agent-to-Agent (A2A) client for IAM-authenticated Cloud Run peers.
+
+Each call mints a Google ID token whose audience matches the target
+service URL, then POSTs an `AgentRequest` JSON to the peer's `/v1/agent`
+endpoint. Tokens are cached per audience for ~50 minutes to amortize the
+metadata-server round trip on hot paths.
+
+Local dev: ID-token minting via ADC requires either an attached service
+account (Cloud Run / GCE / Cloud Build) or
+`gcloud auth application-default login --impersonate-service-account=...`.
+A plain user ADC cannot mint audience-scoped ID tokens.
+"""
+
+from __future__ import annotations
+
+import logging
+import time
+from typing import Any
+
+import httpx
+import google.auth.transport.requests
+from google.oauth2 import id_token
+
+logger = logging.getLogger("surplusas.a2a")
+
+
+_token_cache: dict[str, tuple[str, float]] = {}
+
+
+def _fetch_id_token(audience: str) -> str:
+    cached = _token_cache.get(audience)
+    now = time.time()
+    if cached and cached[1] > now + 60:
+        return cached[0]
+
+    auth_req = google.auth.transport.requests.Request()
+    token = id_token.fetch_id_token(auth_req, audience)
+    # ID tokens last 1 hour; cache for 50 minutes.
+    _token_cache[audience] = (token, now + 50 * 60)
+    return token
+
+
+async def call_peer_agent(
+    audience: str,
+    body: dict[str, Any],
+    path: str = "/v1/agent",
+    timeout: float = 120.0,
+) -> dict[str, Any]:
+    """POST `body` to a peer Cloud Run service and return the parsed JSON.
+
+    Raises httpx.HTTPStatusError on non-2xx responses.
+    """
+    token = _fetch_id_token(audience)
+    url = audience.rstrip("/") + path
+
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        r = await client.post(
+            url,
+            json=body,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
+        )
+        r.raise_for_status()
+        return r.json()

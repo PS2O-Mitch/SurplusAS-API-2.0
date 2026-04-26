@@ -2,20 +2,25 @@
 
 Backward-compatible single front door for partners and the merchant demo.
 `POST /v1/agent` accepts the same shape v1.0 partners send today; modes
-owned by other services (`moderate`, `pricing_optimize`) return 503 until
-Phase 4 wires up A2A to Compliance and Pricing.
+owned by peer services (`moderate`, `pricing_optimize`) are fanned out
+over A2A to Compliance and Pricing respectively, keyed off the
+`COMPLIANCE_SERVICE_URL` / `PRICING_SERVICE_URL` env vars.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-from pathlib import Path
+import os
 
+import httpx
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
+from pathlib import Path
+
+from shared.a2a import call_peer_agent
 from shared.auth import verify_bearer
 from shared.config import LISTING_APP_NAME, LISTING_SERVICE_MODES
 from shared.schemas import AgentRequest, AgentResponse
@@ -25,18 +30,28 @@ from .demo import router as demo_router
 
 logger = logging.getLogger("surplusas.listing.api")
 
+COMPLIANCE_SERVICE_URL = os.environ.get("COMPLIANCE_SERVICE_URL", "")
+PRICING_SERVICE_URL = os.environ.get("PRICING_SERVICE_URL", "")
+
+
+def _peer_url_for(mode: str) -> str | None:
+    if mode == "moderate":
+        return COMPLIANCE_SERVICE_URL or None
+    if mode == "pricing_optimize":
+        return PRICING_SERVICE_URL or None
+    return None
+
+
 app = FastAPI(
     title="SurplusAS API v2.0 — Listing Service",
     version="2.0.0",
     description=(
         "Multi-agent SurplusAS API on Google Cloud + ADK 2.0. "
-        "This is the Listing Service front door; it routes Compliance and "
-        "Pricing modes to peer services via A2A (Phase 4)."
+        "Listing Service is the public front door; it fans `moderate` and "
+        "`pricing_optimize` modes out to Compliance and Pricing peers via A2A."
     ),
 )
 
-# Open CORS — the demo and partner integrations call this from arbitrary
-# origins; auth is enforced at the Bearer-token layer, not the browser layer.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -55,7 +70,15 @@ SAMPLES_DIR = STATIC_DIR / "demo" / "samples"
 
 @app.get("/health", tags=["System"])
 async def health() -> dict:
-    return {"status": "ok", "service": LISTING_APP_NAME, "version": "2.0.0"}
+    return {
+        "status": "ok",
+        "service": LISTING_APP_NAME,
+        "version": "2.0.0",
+        "peers": {
+            "compliance": bool(COMPLIANCE_SERVICE_URL),
+            "pricing": bool(PRICING_SERVICE_URL),
+        },
+    }
 
 
 @app.get("/", include_in_schema=False)
@@ -75,8 +98,6 @@ async def demo_page() -> FileResponse:
 
 @app.get("/demo/samples/{filename}", include_in_schema=False)
 async def demo_sample(filename: str) -> FileResponse:
-    # Defend against path traversal even though FastAPI's path parameter
-    # already excludes slashes; users can still try `..\foo`.
     if "/" in filename or "\\" in filename or ".." in filename:
         raise HTTPException(status_code=404)
     path = SAMPLES_DIR / filename
@@ -86,25 +107,38 @@ async def demo_sample(filename: str) -> FileResponse:
     return FileResponse(path, headers={"Cache-Control": cache})
 
 
-@app.post("/v1/agent", response_model=AgentResponse)
-async def agent_endpoint(
+async def _route_agent(
     request: AgentRequest,
-    partner: dict = Depends(verify_bearer),
+    partner_ctx: dict,
+    user_id: str,
 ) -> AgentResponse:
+    """Either fan out to a peer service (A2A) or run the mode locally."""
     mode = request.mode.value
+
+    peer = _peer_url_for(mode)
+    if peer:
+        try:
+            response = await call_peer_agent(peer, request.model_dump(mode="json"))
+        except httpx.HTTPStatusError as e:
+            logger.warning("A2A peer %s returned %s", peer, e.response.status_code)
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Peer service returned {e.response.status_code}: {e.response.text[:200]}",
+            )
+        except Exception as e:
+            logger.exception("A2A call to %s failed", peer)
+            raise HTTPException(status_code=502, detail=f"Peer service error: {e}")
+        # Peer returns the same AgentResponse shape; pass through.
+        return AgentResponse(**response)
 
     if mode not in LISTING_SERVICE_MODES:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=(
-                f"Mode '{mode}' will be served by a peer service "
-                "(Compliance or Pricing) via A2A in Phase 4. Not yet wired."
+                f"Mode '{mode}' is owned by a peer service but no URL is "
+                "configured (set COMPLIANCE_SERVICE_URL or PRICING_SERVICE_URL)."
             ),
         )
-
-    partner_ctx: dict = dict(partner.get("partner_context") or {})
-    if request.partner_context is not None:
-        partner_ctx.update(request.partner_context.model_dump(exclude_none=True))
 
     try:
         data = await run_listing_mode(
@@ -112,7 +146,7 @@ async def agent_endpoint(
             user_input=request.input,
             image_b64=request.image,
             partner_context=partner_ctx,
-            user_id=request.merchant_id or partner.get("partner_id", "anonymous"),
+            user_id=user_id,
         )
     except json.JSONDecodeError as e:
         logger.warning("Model returned non-JSON: %s", e)
@@ -128,6 +162,19 @@ async def agent_endpoint(
         )
 
     return AgentResponse(success=True, mode=mode, data=data, warnings=[])
+
+
+@app.post("/v1/agent", response_model=AgentResponse)
+async def agent_endpoint(
+    request: AgentRequest,
+    partner: dict = Depends(verify_bearer),
+) -> AgentResponse:
+    partner_ctx: dict = dict(partner.get("partner_context") or {})
+    if request.partner_context is not None:
+        partner_ctx.update(request.partner_context.model_dump(exclude_none=True))
+
+    user_id = request.merchant_id or partner.get("partner_id", "anonymous")
+    return await _route_agent(request, partner_ctx, user_id)
 
 
 @app.exception_handler(ValueError)
