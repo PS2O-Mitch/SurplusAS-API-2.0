@@ -24,6 +24,9 @@ from shared.a2a import call_peer_agent
 from shared.auth import verify_bearer
 from shared.config import LISTING_APP_NAME, LISTING_SERVICE_MODES
 from shared.schemas import AgentRequest, AgentResponse
+from shared.tracing import init_tracing, install_fastapi_middleware
+
+init_tracing(LISTING_APP_NAME)
 
 from .agent import run_listing_mode
 from .demo import router as demo_router
@@ -60,6 +63,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+install_fastapi_middleware(app, LISTING_APP_NAME)
 
 app.include_router(demo_router)
 

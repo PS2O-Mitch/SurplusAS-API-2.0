@@ -14,8 +14,11 @@ from fastapi import FastAPI, HTTPException
 
 from shared.config import PRICING_APP_NAME
 from shared.schemas import AgentRequest, AgentResponse
+from shared.tracing import init_tracing, install_fastapi_middleware
 
 from .agent import run_pricing_optimize
+
+init_tracing(PRICING_APP_NAME)
 
 logger = logging.getLogger("surplusas.pricing.api")
 
@@ -28,6 +31,9 @@ app = FastAPI(
         "`historical_sales` Cloud SQL table for demand-aware recommendations."
     ),
 )
+
+
+install_fastapi_middleware(app, PRICING_APP_NAME)
 
 
 @app.get("/health")

@@ -21,8 +21,11 @@ from fastapi import FastAPI, HTTPException
 
 from shared.config import COMPLIANCE_APP_NAME
 from shared.schemas import AgentRequest, AgentResponse
+from shared.tracing import init_tracing, install_fastapi_middleware
 
 from .agent import run_moderate
+
+init_tracing(COMPLIANCE_APP_NAME)
 
 logger = logging.getLogger("surplusas.compliance.api")
 
@@ -35,6 +38,9 @@ app = FastAPI(
         "purpose: the `moderate` mode."
     ),
 )
+
+
+install_fastapi_middleware(app, COMPLIANCE_APP_NAME)
 
 
 @app.get("/health")

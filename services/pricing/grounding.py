@@ -10,9 +10,19 @@ seam is here.
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter
 
 from shared import db
+
+
+_VALID_CATEGORIES = frozenset({
+    "produce", "prepared_meal", "bakery", "dairy", "beverage",
+    "packaged_goods", "deli", "frozen", "mixed_bag",
+})
+
+# Matches `category: bakery` or `"category": "bakery"` style lines.
+_CATEGORY_LINE_RE = re.compile(r'"?category"?\s*[:=]\s*"?([a-z_]+)"?', re.IGNORECASE)
 
 
 async def grounding_for(category: str | None) -> str:
@@ -52,13 +62,37 @@ async def grounding_for(category: str | None) -> str:
 
 
 def category_from_input(user_input: str) -> str | None:
-    """Best-effort extract of `category` from a JSON listing string."""
+    """Best-effort extract of `category` from a listing description.
+
+    Tries three strategies in order:
+      1. Parse as JSON and read the `category` field.
+      2. Regex-match a `category: <value>` line in plain text (e.g.
+         the listing-summary text the workflow pipeline sends).
+      3. Scan the text for any whitelisted category keyword.
+    """
+    if not user_input:
+        return None
+
     try:
         obj = json.loads(user_input)
+        if isinstance(obj, dict):
+            cat = obj.get("category")
+            if isinstance(cat, str) and cat:
+                normalized = cat.lower().strip()
+                if normalized in _VALID_CATEGORIES:
+                    return normalized
     except (json.JSONDecodeError, TypeError):
-        return None
-    if isinstance(obj, dict):
-        cat = obj.get("category")
-        if isinstance(cat, str) and cat:
-            return cat.lower().strip()
+        pass
+
+    match = _CATEGORY_LINE_RE.search(user_input)
+    if match:
+        normalized = match.group(1).lower().strip()
+        if normalized in _VALID_CATEGORIES:
+            return normalized
+
+    lower = user_input.lower()
+    for cat in _VALID_CATEGORIES:
+        if cat in lower:
+            return cat
+
     return None

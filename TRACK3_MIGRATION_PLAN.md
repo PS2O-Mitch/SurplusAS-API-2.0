@@ -129,10 +129,10 @@ static/                 # Reuse existing demo HTML + samples; swap base URL
 
 ### Phase 5 — Remaining modes + grounding + observability
 
-- Port remaining modes into Listing Service: `listing_enhance`, `listing_batch`, `search_interpret`, `customer_assist`, `translate` (as a function tool, not its own agent).
-- Strengthen Pricing Service grounding: Vertex AI Search over `historical_sales` or simple SQL aggregations for time-of-day / day-of-week demand patterns.
-- Cloud Logging + OpenTelemetry traces across A2A calls. Single trace ID propagates from `POST /v1/agent` through the graph and out to peer services.
-- Migrate the public demo: `static/surplusas-merchant-demo.html` and `/demo/v1/agent` proxy point at the new Cloud Run URL.
+- ✅ All listing-owned modes ported and verified end-to-end on Cloud Run: `listing_enhance`, `listing_batch`, `search_interpret`, `customer_assist`, `translate`. The mode-agnostic `run_listing_mode` dispatcher + `build_mode_prompt` in `shared/prompts/system.py` cover all eight modes. `translate` ships as a mode for now; converting it to an in-graph function tool is a future polish item, not a contest blocker.
+- ✅ Pricing Service grounding hardened: `category_from_input` now extracts the category from JSON, `key: value` lines, OR a bare keyword scan over the nine valid categories. `_grounding_used: True` confirmed for the workflow's plain-text listing summary.
+- ✅ OpenTelemetry tracing across A2A: `shared/tracing.py` configures a `CloudTraceSpanExporter` with `SimpleSpanProcessor` (Cloud Run idle pauses kill BatchSpanProcessor's daemon thread). FastAPI middleware on each service extracts/creates W3C `traceparent`; `shared/a2a.py` injects it into the outbound httpx call. Verified: a single `listing_create_full` request produces a 26-span trace in Cloud Trace spanning `surplusas_listing` → `surplusas_compliance` → `surplusas_pricing`, with ADK-emitted `invoke_workflow` / `invoke_node` / `invoke_agent` / `call_llm` spans nested correctly.
+- ✅ Public demo: `static/surplusas-merchant-demo.html` served from Cloud Run at `/demo` with a key-free `/demo/v1/*` proxy. End-to-end smoke test: `mode=listing_create` returns full ListingCreateResponse, sample images served from `/demo/samples/*.webp`.
 
 ### Phase 6 — Tests + production polish
 

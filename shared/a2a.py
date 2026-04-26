@@ -21,6 +21,8 @@ import httpx
 import google.auth.transport.requests
 from google.oauth2 import id_token
 
+from shared.tracing import a2a_client_span
+
 logger = logging.getLogger("surplusas.a2a")
 
 
@@ -53,14 +55,13 @@ async def call_peer_agent(
     token = _fetch_id_token(audience)
     url = audience.rstrip("/") + path
 
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        r = await client.post(
-            url,
-            json=body,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-            },
-        )
-        r.raise_for_status()
-        return r.json()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    with a2a_client_span(audience, headers):
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.post(url, json=body, headers=headers)
+            r.raise_for_status()
+            return r.json()
