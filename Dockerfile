@@ -18,6 +18,7 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # App code (only what each service needs at runtime).
 COPY shared/ /app/shared/
 COPY services/ /app/services/
+COPY static/ /app/static/
 
 # Run as a non-root user.
 RUN useradd -m -u 1001 surplus && chown -R surplus:surplus /app
