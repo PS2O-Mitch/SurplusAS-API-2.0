@@ -66,7 +66,7 @@ flowchart LR
 - **A2A auth** — every peer call mints a Google ID token whose audience matches the target service URL, cached per-audience for 50 minutes (`shared/a2a.py`).
 - **Tracing** — `shared/tracing.py` registers a `CloudTraceSpanExporter` on each service and propagates W3C `traceparent`. A single `listing_create_full` request shows up in Cloud Trace as one trace with ~26 spans spanning all three services, with ADK's auto-instrumented `invoke_workflow`/`invoke_node`/`invoke_agent`/`call_llm` nested under our middleware spans.
 
-Backward-compatible `POST /v1/agent` so v1.0 partners and the merchant demo don't have to change.
+Backward-compatible `POST /v1/agent` — same surface the v1.0 Fly.io service exposed, so the merchant demo and any historical partner integrations work unchanged. (v1.0 was decommissioned on 2026-04-26; tag `v1.0-fly` in the legacy repo preserves the final state.)
 
 ## Repo layout
 

@@ -2,6 +2,12 @@
 
 **Contest deadline:** 2026-06-05 17:00 PT  ·  **Judging window:** 2026-06-11 → 2026-06-18
 
+> **Status as of 2026-04-26 — Migration complete.**
+> v1.0 (Fly.io, `surplusas-api-dev.fly.dev`) was decommissioned ahead of the contest deadline.
+> Final commit archived under git tag `v1.0-fly` in the legacy repo.
+> All traffic — demo and (vestigial) partner — now resolves to v2.0 on Cloud Run.
+> The marketing site (`PS2O Website3`) was repointed to the Cloud Run demo URL on the same day.
+
 ## Context
 
 SurplusAS is competing in the **Google for Startups AI Agents Challenge — Track 3 ("Refactor for Google Cloud Marketplace & Gemini Enterprise")**. The track mandates: B2B focus, cloud-native runtime on Google Cloud, Vertex-powered intelligence, and A2A protocol interoperability.
@@ -138,7 +144,7 @@ static/                 # Reuse existing demo HTML + samples; swap base URL
 
 - ✅ `tests/smoke_test_modes.py` — 10 pytest cases hit the deployed Cloud Run URL: `/health`, all eight agent modes (including A2A-fanned `moderate` and `pricing_optimize`), and the full `listing_create_full` ADK 2.0 graph workflow. Each asserts response shape (success, mode, key fields per schema). 10/10 passing in ~90s. Skip individual modes via `SURPLUSAS_SKIP=mode1,mode2`. Re-target a different deployment via `SURPLUSAS_BASE_URL=...`. `pytest.ini` registers the `smoke_test_*.py` pattern so pytest discovers the file.
 - ✅ README.md refreshed with a Mermaid architecture diagram, deployed URLs, repo layout, local-run instructions, smoke-test invocation, and deploy commands. Suitable for the Devpost submission link.
-- ⏸ Production cutover for partner traffic: deferred to after judging. Strategy: keep v1.0 (Fly.io) serving partner Bearer-token traffic until the contest window closes; the merchant-demo URL is already pointed at the new Cloud Run service.
+- ✅ Production cutover for partner traffic completed 2026-04-26 — well ahead of the contest window. v1.0 (Fly.io) had only the seeded `demo_001` key in production, so cutover was a website-link repoint plus suspending the Fly app (`surplusas-api-dev`). The legacy repo is archived under tag `v1.0-fly`. Final destroy of the suspended Fly app is pending an explicit decision (kept suspended for now to preserve the app name and allow fast rollback if needed).
 
 ### Phase 7 — Submission
 
