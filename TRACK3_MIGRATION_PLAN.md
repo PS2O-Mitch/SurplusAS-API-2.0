@@ -142,9 +142,12 @@ static/                 # Reuse existing demo HTML + samples; swap base URL
 
 ### Phase 7 — Submission
 
-- Record 2-minute demo video showing: merchant uploads image → graph workflow runs → Listing → Compliance (A2A) → Pricing (A2A) → final listing rendered. Architecture diagram inset.
-- Devpost submission: public PS2O repo URL, architecture diagram, write-up, video.
-- Submit by **June 5, 17:00 PT** (hard contest deadline).
+- ✅ Devpost write-up drafted in [`DEVPOST.md`](./DEVPOST.md) — Inspiration / What it does / How we built it / Challenges / Accomplishments / What we learned / What's next / Built with, plus a copy-paste curl and the live demo URL. Ready to paste into the Devpost submission form.
+- ✅ 2-minute demo video shot list in [`DEMO_VIDEO_SCRIPT.md`](./DEMO_VIDEO_SCRIPT.md) — pre-record checklist, second-by-second narration timed to the demo flow, on-screen captions, editing notes, and final pre-upload checklist. (Recording the actual video is a one-shot human task.)
+- ⏳ **Action required by user**:
+  1. Record the 2-minute video per the script and upload to YouTube as Unlisted.
+  2. Paste `DEVPOST.md` content into Devpost form, attach repo URL + video URL.
+  3. Submit by **June 5, 17:00 PT** (hard contest deadline).
 
 ## Critical files to modify or create
 
