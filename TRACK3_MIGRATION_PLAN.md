@@ -136,9 +136,9 @@ static/                 # Reuse existing demo HTML + samples; swap base URL
 
 ### Phase 6 — Tests + production polish
 
-- Add a `tests/` directory (none exists today). At minimum: smoke tests per mode hitting the deployed Cloud Run URL with fixture inputs. Validates JSON contracts haven't drifted.
-- Production cutover for partner traffic: parallel-run Fly.io and Cloud Run; flip the merchant-demo URL first; keep partner Bearer-token traffic on Fly.io until DNS swap post-judging.
-- Architecture diagram (from this plan) cleaned up for submission. Devpost write-up draft.
+- ✅ `tests/smoke_test_modes.py` — 10 pytest cases hit the deployed Cloud Run URL: `/health`, all eight agent modes (including A2A-fanned `moderate` and `pricing_optimize`), and the full `listing_create_full` ADK 2.0 graph workflow. Each asserts response shape (success, mode, key fields per schema). 10/10 passing in ~90s. Skip individual modes via `SURPLUSAS_SKIP=mode1,mode2`. Re-target a different deployment via `SURPLUSAS_BASE_URL=...`. `pytest.ini` registers the `smoke_test_*.py` pattern so pytest discovers the file.
+- ✅ README.md refreshed with a Mermaid architecture diagram, deployed URLs, repo layout, local-run instructions, smoke-test invocation, and deploy commands. Suitable for the Devpost submission link.
+- ⏸ Production cutover for partner traffic: deferred to after judging. Strategy: keep v1.0 (Fly.io) serving partner Bearer-token traffic until the contest window closes; the merchant-demo URL is already pointed at the new Cloud Run service.
 
 ### Phase 7 — Submission
 
