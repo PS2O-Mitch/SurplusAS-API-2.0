@@ -27,6 +27,7 @@ from shared.schemas import AgentRequest, AgentResponse
 
 from .agent import run_listing_mode
 from .demo import router as demo_router
+from .pipeline import run_listing_pipeline
 
 logger = logging.getLogger("surplusas.listing.api")
 
@@ -141,13 +142,21 @@ async def _route_agent(
         )
 
     try:
-        data = await run_listing_mode(
-            mode=mode,
-            user_input=request.input,
-            image_b64=request.image,
-            partner_context=partner_ctx,
-            user_id=user_id,
-        )
+        if mode == "listing_create_full":
+            data = await run_listing_pipeline(
+                user_input=request.input,
+                image_b64=request.image,
+                partner_context=partner_ctx,
+                user_id=user_id,
+            )
+        else:
+            data = await run_listing_mode(
+                mode=mode,
+                user_input=request.input,
+                image_b64=request.image,
+                partner_context=partner_ctx,
+                user_id=user_id,
+            )
     except json.JSONDecodeError as e:
         logger.warning("Model returned non-JSON: %s", e)
         raise HTTPException(

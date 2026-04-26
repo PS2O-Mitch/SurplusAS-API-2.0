@@ -24,6 +24,7 @@ from shared.config import LISTING_SERVICE_MODES, SURPLUSAS_API_KEY
 from shared.schemas import AgentRequest, AgentResponse
 
 from .agent import run_listing_mode
+from .pipeline import run_listing_pipeline
 
 logger = logging.getLogger("surplusas.listing.demo")
 
@@ -75,14 +76,23 @@ async def demo_agent(body: AgentRequest) -> AgentResponse:
             detail=f"Mode '{mode}' is not handled by the Listing Service and no peer URL is configured.",
         )
 
+    user_id = f"demo:{secrets.token_hex(4)}"
     try:
-        data = await run_listing_mode(
-            mode=mode,
-            user_input=body.input,
-            image_b64=body.image,
-            partner_context=ctx,
-            user_id=f"demo:{secrets.token_hex(4)}",
-        )
+        if mode == "listing_create_full":
+            data = await run_listing_pipeline(
+                user_input=body.input,
+                image_b64=body.image,
+                partner_context=ctx,
+                user_id=user_id,
+            )
+        else:
+            data = await run_listing_mode(
+                mode=mode,
+                user_input=body.input,
+                image_b64=body.image,
+                partner_context=ctx,
+                user_id=user_id,
+            )
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=502, detail=f"Model returned non-JSON: {e}")
     except Exception as exc:

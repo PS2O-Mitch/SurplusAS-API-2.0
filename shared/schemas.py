@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field, field_validator
 # ---------------------------------------------------------------------------
 class AgentMode(str, Enum):
     listing_create = "listing_create"
+    listing_create_full = "listing_create_full"
     listing_enhance = "listing_enhance"
     listing_batch = "listing_batch"
     search_interpret = "search_interpret"

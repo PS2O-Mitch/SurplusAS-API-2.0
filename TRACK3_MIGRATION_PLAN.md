@@ -122,10 +122,10 @@ static/                 # Reuse existing demo HTML + samples; swap base URL
 
 ### Phase 4 — Compliance + Pricing + A2A
 
-- Compliance Service: port `moderate` prompt + schema. ADK agent. Expose A2A endpoint via `services/compliance/a2a.py`. Deploy to Cloud Run.
-- Pricing Service: port `pricing_optimize` prompt + schema. ADK agent + `services/pricing/grounding.py` reads `historical_sales` table for demand signals. A2A endpoint. Deploy to Cloud Run.
-- Wire Listing Service to call Compliance and Pricing via A2A when `mode == "moderate"` or `mode == "pricing_optimize"`. IAM service-account-to-service-account auth.
-- ADK 2.0 graph workflow inside Listing Service for the merchant write path: `listing_create` → `moderate` (A2A) → `pricing_optimize` (A2A) → `translate` (tool) → `publish`.
+- ✅ Compliance Service: `moderate` ported, ADK 2.0 agent, private Cloud Run with IAM-only A2A.
+- ✅ Pricing Service: `pricing_optimize` ported with `services/pricing/grounding.py` reading `historical_sales` for demand signals. Private Cloud Run with IAM-only A2A.
+- ✅ Listing Service fans `moderate` and `pricing_optimize` modes out via A2A (IAM-authed Google ID tokens, audience-scoped, cached 50 min).
+- ✅ ADK 2.0 graph workflow inside Listing Service (`services/listing/pipeline.py`): `listing_create_full` mode runs a `Workflow` with four `FunctionNode`s — intake (local) → moderate (A2A) → price (A2A) → publish (local) — driven by `Runner.run_async(node=workflow)` against a state-seeded session. End-to-end verified: a single merchant request returns the chained intake + moderation + pricing + `published_listing_id`. `translate` deferred to Phase 5 since it's tool-shaped, not graph-shaped.
 
 ### Phase 5 — Remaining modes + grounding + observability
 

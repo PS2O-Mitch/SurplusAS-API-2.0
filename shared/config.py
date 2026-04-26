@@ -50,6 +50,7 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "")
 # --- Valid mode enums (for fast input validation) ---
 VALID_MODES: frozenset[str] = frozenset({
     "listing_create",
+    "listing_create_full",
     "listing_enhance",
     "listing_batch",
     "search_interpret",
@@ -60,9 +61,11 @@ VALID_MODES: frozenset[str] = frozenset({
 })
 
 # Modes the Listing Service handles directly. The other two get fanned out to
-# Compliance and Pricing via A2A in Phase 4.
+# Compliance and Pricing via A2A in Phase 4. `listing_create_full` runs the
+# Phase 4d ADK 2.0 graph workflow that internally fans out to peer services.
 LISTING_SERVICE_MODES: frozenset[str] = frozenset({
     "listing_create",
+    "listing_create_full",
     "listing_enhance",
     "listing_batch",
     "search_interpret",
