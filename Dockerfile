@@ -24,7 +24,10 @@ COPY static/ /app/static/
 RUN useradd -m -u 1001 surplus && chown -R surplus:surplus /app
 USER surplus
 
-ENV PORT=8080
+ENV PORT=8080 \
+    SERVICE_MODULE=services.listing.api
 EXPOSE 8080
 
-CMD ["/bin/sh", "-c", "exec uvicorn services.listing.api:app --host 0.0.0.0 --port ${PORT:-8080}"]
+# Same image runs every service; override SERVICE_MODULE at deploy time
+# (e.g., services.compliance.api, services.pricing.api) to swap entry point.
+CMD ["/bin/sh", "-c", "exec uvicorn ${SERVICE_MODULE}:app --host 0.0.0.0 --port ${PORT:-8080}"]
