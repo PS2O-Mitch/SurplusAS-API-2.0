@@ -10,3 +10,7 @@ uvicorn[standard]>=0.32.0
 
 # Config
 python-dotenv>=1.0.0
+
+# Cloud SQL access (Phase 3b)
+cloud-sql-python-connector[asyncpg]>=1.18
+asyncpg>=0.30
