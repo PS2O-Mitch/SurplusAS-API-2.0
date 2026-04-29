@@ -1,8 +1,10 @@
 """Pricing Service — A2A endpoint over IAM-authenticated Cloud Run.
 
 Mirror of the Compliance Service shape; private Cloud Run, accepts an
-`AgentRequest` with `mode = pricing_optimize`. The Pricing agent grounds
-on the `historical_sales` Cloud SQL table before the LLM call.
+`AgentRequest` with `mode = pricing_optimize`. As of Phase 2, the Pricing
+agent runs the deterministic `pricing_engine.formula.recommend()`
+against the `reference_prices` corpus and the latest
+`pricing_coefficients` row — no LLM call from this service.
 """
 
 from __future__ import annotations
@@ -27,8 +29,9 @@ app = FastAPI(
     version="2.0.0",
     description=(
         "Dynamic pricing service. Private Cloud Run; A2A peers authenticate "
-        "via Google ID token (audience = service URL). Grounded on the "
-        "`historical_sales` Cloud SQL table for demand-aware recommendations."
+        "via Google ID token (audience = service URL). Deterministic formula "
+        "anchored on the `reference_prices` corpus + latest "
+        "`pricing_coefficients` row."
     ),
 )
 

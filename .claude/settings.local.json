@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(python .graphify_ast_run.py)",
+      "PowerShell(New-Item *)",
+      "PowerShell(python .graphify_merge_chunks.py)",
+      "PowerShell(python .graphify_merge_ast_sem.py)",
+      "PowerShell(python .graphify_build.py)",
+      "PowerShell(python .graphify_inspect_communities.py)",
+      "PowerShell(python .graphify_label.py)",
+      "PowerShell(python .graphify_html.py)",
+      "PowerShell(python .graphify_finish.py)",
+      "Bash(git *)",
+      "Bash(vercel env *)",
+      "Skill(schedule)"
+    ]
+  }
+}
